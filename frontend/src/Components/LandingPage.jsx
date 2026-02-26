@@ -2,10 +2,11 @@ import React from "react";
 
 export default function LandingPage() {
   return (
-    <div className="h-[85vh] relative bg-linear-to-br from-orange-500 via-orange-400 to-amber-400 px-20 py-10 rounded-b-3xl overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden z-10">
+    <div className="h-[80vh] relative bg-linear-to-br from-orange-500 via-orange-400 to-amber-400 px-20 py-10 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden z-10 pointer-events-none">
+        {" "}
         <svg
-          className="absolute top-32 left-40 opacity-40 w-32 float-animation"
+          className="absolute top-32 right-40 opacity-40 w-42 float-animation"
           viewBox="0 0 24 24"
           fill="white"
         >
@@ -37,13 +38,16 @@ export default function LandingPage() {
           </button>
         </div>
       </div>
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white shadow-lg rounded-full px-10 py-3 flex items-center gap-8">
+      <div
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 
+          bg-white/90 rounded-full px-8 py-2 flex items-center gap-8 
+          shadow-[0_10px_40px_rgba(0,0,0,0.15)] backdrop-blur-md 
+          border border-white/30 transition hover:shadow-[0_15px_50px_rgba(0,0,0,0.2)]"
+      >
         <button className="text-gray-500">Home</button>
-
         <div className="bg-orange-500 text-white px-6 py-2 rounded-full font-bold">
           rollio
         </div>
-
         <button className="text-gray-500">Profile</button>
       </div>
     </div>
