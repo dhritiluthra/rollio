@@ -1,9 +1,12 @@
-const http = require("http");
-const os = require("os");
+import dotenv from "dotenv";
+import express from "express";
 
-// console.log(http);
-console.log(os.cpus().length);
+dotenv.config();
 
-http.createServer((req, res) => {
-  console.log(req);
+const app = express();
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

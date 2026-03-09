@@ -2,40 +2,78 @@ import React from "react";
 
 export default function LandingPage() {
   return (
-    <div className="h-[80vh] relative bg-linear-to-br from-orange-500 via-orange-400 to-amber-400 px-20 py-10 overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden z-10 pointer-events-none">
-        {" "}
-        <svg
-          className="absolute top-32 right-40 opacity-40 w-42 float-animation"
-          viewBox="0 0 24 24"
-          fill="white"
-        >
-          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z" />
-        </svg>
+    <>
+      <div className="h-[80vh] relative bg-linear-to-br from-orange-500 via-orange-400 to-amber-400 px-20 py-10 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden z-10 pointer-events-none">
+          {" "}
+          <svg
+            className="absolute top-32 right-40 opacity-40 w-42 float-animation"
+            viewBox="0 0 24 24"
+            fill="white"
+          >
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z" />
+          </svg>
+        </div>
+
+        <div className="w-full flex flex-col items-center justify-center text-center">
+          <p className="text-4xl text-white">rollio</p>
+
+          <p className="text-5xl text-white font-bold mt-10">
+            Discover street food{" "}
+            <span className="underline decoration-wavy decoration-amber-200">
+              near you
+            </span>{" "}
+            in Real-Time
+          </p>
+
+          <p className="text-xl text-white my-10">
+            Find the best local food carts live!
+          </p>
+
+          <div className="flex gap-4">
+            <button className="bg-white px-6 py-2 rounded text-orange-500 font-semibold cursor-pointer">
+              Find Vendors Near me
+            </button>
+            <button className="bg-white px-6 py-2 rounded text-orange-500 font-semibold cursor-pointer">
+              Join as a Vendor
+            </button>
+          </div>
+        </div>
       </div>
+      <div className="py-20 px-20 bg-white">
+        <h2 className="text-4xl font-bold text-center text-mauve-700 mb-10">
+          Why Rollio?
+        </h2>
 
-      <div className="w-full flex flex-col items-center justify-center text-center">
-        <p className="text-4xl text-white">rollio</p>
+        <div className="grid grid-cols-3 gap-10">
+          {/* Feature 1 */}
+          <div className="p-6 rounded-xl shadow-lg hover:shadow-amber-100/80 transition">
+            <div className="text-3xl mb-4">📍</div>
+            <h3 className="text-xl font-semibold mb-2">
+              Real-time Vendor Location
+            </h3>
+            <p className="text-gray-600">
+              See exactly where street vendors are live right now.
+            </p>
+          </div>
 
-        <p className="text-5xl text-white font-bold mt-10">
-          Discover street food{" "}
-          <span className="underline decoration-wavy decoration-amber-200">
-            near you
-          </span>{" "}
-          in Real-Time
-        </p>
+          {/* Feature 2 */}
+          <div className="p-6 rounded-xl shadow-lg hover:shadow-amber-100/80 transition">
+            <div className="text-3xl mb-4">⚡</div>
+            <h3 className="text-xl font-semibold mb-2">Live Availability</h3>
+            <p className="text-gray-600">
+              Know which vendors are currently active and serving.
+            </p>
+          </div>
 
-        <p className="text-xl text-white my-10">
-          Find the best local food carts live!
-        </p>
-
-        <div className="flex gap-4">
-          <button className="bg-white px-6 py-2 rounded text-orange-500 font-semibold cursor-pointer">
-            Find Vendors Near me
-          </button>
-          <button className="bg-white px-6 py-2 rounded text-orange-500 font-semibold cursor-pointer">
-            Join as a Vendor
-          </button>
+          {/* Feature 3 */}
+          <div className="p-6 rounded-xl shadow-lg hover:shadow-amber-100/80 transition">
+            <div className=" text-3xl mb-4">🍜</div>
+            <h3 className="text-xl font-semibold mb-2">Discover Hidden Gems</h3>
+            <p className="text-gray-600">
+              Find amazing street food vendors near your location.
+            </p>
+          </div>
         </div>
       </div>
       <div
@@ -45,11 +83,11 @@ export default function LandingPage() {
           border border-white/30 transition hover:shadow-[0_15px_50px_rgba(0,0,0,0.2)]"
       >
         <button className="text-gray-500">Home</button>
-        <div className="bg-orange-500 text-white px-6 py-2 rounded-full font-bold">
+        <div className="bg-amber-500 text-white px-6 py-2 rounded-full font-bold">
           rollio
         </div>
         <button className="text-gray-500">Profile</button>
       </div>
-    </div>
+    </>
   );
 }
