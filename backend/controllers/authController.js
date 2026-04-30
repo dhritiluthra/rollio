@@ -13,7 +13,7 @@ export const register = async (req, res) => {
       "SELECT id FROM users WHERE email = $1",
       [email],
     );
-    console.log(existingUser);
+    //console.log(existingUser);
     if (existingUser.rows.length > 0) {
       return res.status(400).json({ message: "Email already registered" });
     }
@@ -46,7 +46,7 @@ export const register = async (req, res) => {
       user,
     });
   } catch (error) {
-    console.error("Register error:", error.message);
+    console.error("Register error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -66,6 +66,7 @@ export const login = async (req, res) => {
     }
 
     const user = result.rows[0];
+    console.log("User info from db :", user);
 
     // 2. Compare password with stored hash
     const isMatch = await bcrypt.compare(password, user.password_hash);

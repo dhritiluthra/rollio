@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import authRoutes from "./routes/auth.js";
+import cartRoutes from "./routes/carts.js";
 dotenv.config();
 
 const app = express();
@@ -17,6 +18,7 @@ app.use(
 app.use(express.json()); // lets Express read JSON from request body
 
 app.use("/auth", authRoutes);
+app.use("/carts", cartRoutes);
 
 // Health check — just to confirm server is running
 app.get("/", (req, res) => {
