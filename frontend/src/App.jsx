@@ -1,15 +1,20 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import "./App.css";
-import Home from "./Components/Home";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import LandingPage from "./pages/LandingPage.jsx";
+import Login from "./pages/auth/Login.jsx";
+import Register from "./pages/auth/Register.jsx";
+import MapView from "./pages/customer/MapView.jsx";
+import VendorDashboard from "./pages/vendor/VendorDashboard.jsx";
+
+const router = createBrowserRouter([
+  { path: "/", element: <LandingPage /> },
+  { path: "/login", element: <Login /> },
+  { path: "/register", element: <Register /> },
+  { path: "/dashboard", element: <VendorDashboard /> },
+  { path: "/map", element: <MapView /> },
+]);
 
 function App() {
-  return (
-    <>
-      <Home></Home>
-    </>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;

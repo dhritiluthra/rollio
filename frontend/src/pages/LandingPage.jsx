@@ -1,6 +1,7 @@
 import React from "react";
-
+import { useNavigate } from "react-router-dom";
 export default function LandingPage() {
+  const navigate = useNavigate();
   return (
     <>
       <div className="h-[80vh] relative bg-linear-to-br from-orange-500 via-orange-400 to-amber-400 px-20 py-10 overflow-hidden">
@@ -31,10 +32,17 @@ export default function LandingPage() {
           </p>
 
           <div className="flex gap-4">
-            <button className="bg-white px-6 py-2 rounded text-orange-500 font-semibold cursor-pointer">
-              Find Vendors Near me
+            <button
+              onClick={() => navigate("/map")}
+              className="bg-white px-6 py-2 rounded text-orange-500 font-semibold cursor-pointer"
+            >
+              Find Carts Near Me
             </button>
-            <button className="bg-white px-6 py-2 rounded text-orange-500 font-semibold cursor-pointer">
+
+            <button
+              onClick={() => navigate("/register")}
+              className="bg-white px-6 py-2 rounded text-orange-500 font-semibold cursor-pointer"
+            >
               Join as a Vendor
             </button>
           </div>

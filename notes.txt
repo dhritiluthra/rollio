@@ -1,0 +1,30 @@
+Database ✅
+  └── users, carts, cart_locations, food_items
+
+Backend ✅
+  └── POST /auth/register
+  └── POST /auth/login
+  └── POST /carts              (create cart)
+  └── PUT  /carts/location     (set location)
+  └── PUT  /carts/toggle       (go live / go offline)
+  └── GET  /carts/nearby       (find active carts)
+
+Frontend ✅
+  └── Landing page
+
+1. Auth pages         → Register, Login
+2. Vendor dashboard   → Create cart, set location, go live
+3. Map view           → Show nearby active carts
+
+src/
+├── pages/
+│   ├── auth/          → Login.jsx, Register.jsx
+│   ├── vendor/        → VendorDashboard.jsx, SetLocation.jsx
+│   └── customer/      → MapView.jsx (the main discovery page)
+├── api/
+│   └── axios.js       → one place where all API calls live
+├── context/
+│   └── AuthContext.jsx → stores logged in user globally
+├── Components/        → reusable bits (buttons, navbar, cards)
+├── App.jsx            → routing lives here
+└── main.jsx           → entry point
