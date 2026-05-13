@@ -152,3 +152,34 @@ export const toggleCart = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const getMyCarts = async (req, res) => {
+  const owner_id = req.user.userId;
+
+  try {
+    const result = await pool.query(
+      `SELECT
+         c.id,
+         c.name,
+         c.description,
+         c.is_active,
+         c.created_at,
+         cl.latitude,
+         cl.longitude,
+         cl.address,
+         cl.updated_at as location_updated_at
+       FROM carts c
+       LEFT JOIN cart_locations cl ON cl.cart_id = c.id
+       WHERE c.owner_id = $1
+       ORDER BY c.created_at DESC`,
+      [owner_id],
+    );
+
+    res.status(200).json({
+      carts: result.rows,
+    });
+  } catch (error) {
+    console.error("Get my carts error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};

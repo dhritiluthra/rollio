@@ -48,10 +48,13 @@ export default function Login() {
       <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl px-8 py-10">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-orange-500 tracking-widest uppercase">
+          <h1
+            className="text-3xl font-bold text-orange-500 tracking-widest uppercase cursor-pointer"
+            onClick={() => navigate("/")}
+          >
             Rollio
           </h1>
-          <p className="text-gray-500 text-sm mt-1">Welcome back</p>
+          <p className="text-gray-500 text-sm mt-1">Welcome back!</p>
         </div>
 
         {/* Error */}

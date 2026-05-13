@@ -93,6 +93,7 @@ export const login = async (req, res) => {
         role: user.role,
       },
     });
+    console.log("Login Testing ");
   } catch (error) {
     console.error("Login error:", error.message);
     res.status(500).json({ message: "Server error" });

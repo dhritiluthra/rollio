@@ -5,6 +5,7 @@ import {
   updateLocation,
   getNearbyCarts,
   toggleCart,
+  getMyCarts,
 } from "../controllers/cartController.js";
 
 const router = express.Router();
@@ -16,5 +17,6 @@ router.get("/nearby", getNearbyCarts);
 router.post("/", protect, vendorOnly, createCart);
 router.put("/location", protect, vendorOnly, updateLocation);
 router.put("/toggle", protect, vendorOnly, toggleCart);
+router.get("/my-carts", protect, vendorOnly, getMyCarts);
 
 export default router;

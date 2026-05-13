@@ -47,7 +47,12 @@ export default function Register() {
     <div className="min-h-screen bg-gradient-to-br from-orange-500 via-orange-400 to-amber-400 flex items-center justify-center px-4">
       <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl px-8 py-6">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-orange-500 tracking-widest uppercase">
+          <h1
+            className="text-3xl font-bold text-orange-500 tracking-widest uppercase cursor-pointer"
+            onClick={() => {
+              navigate("/");
+            }}
+          >
             Rollio
           </h1>
           <p className="text-gray-500 text-sm mt-1">Create your account</p>
