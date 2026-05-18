@@ -42,7 +42,9 @@ export default function VendorDashboard() {
       setNewCart({ name: "", description: "" });
       fetchMyCarts(); // refresh list
     } catch (err) {
+      console.log("403 ERROR", err.response);
       setError(err.response?.data?.message || "Failed to create cart");
+      setShowModal(false);
     } finally {
       setCreating(false);
     }
