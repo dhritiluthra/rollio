@@ -2,7 +2,7 @@ import pool from "../config/db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-import sendEmail from "../utils/sendEmail.js";
+import sendEmail from "../src/utils/sendEmail.js";
 
 // ── REGISTER ──────────────────────────────────
 export const register = async (req, res) => {
@@ -155,7 +155,7 @@ export const forgotPassword = async (req, res) => {
           <h2 style="color: #f97316;">Rollio</h2>
           <p>Hi ${user.name},</p>
           <p>You requested to reset your password. Click the button below:</p>
-          
+          <a
             href="${resetLink}"
             style="
               display: inline-block;
