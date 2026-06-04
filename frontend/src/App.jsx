@@ -4,6 +4,7 @@ import Login from "./pages/auth/Login.jsx";
 import Register from "./pages/auth/Register.jsx";
 import MapView from "./pages/customer/MapView.jsx";
 import VendorDashboard from "./pages/vendor/VendorDashboard.jsx";
+import CartDetail from "./pages/vendor/CartDetail.jsx";
 import ForgotPassword from "./pages/auth/ForgotPassword.jsx";
 import ResetPassword from "./pages/auth/ResetPassword.jsx";
 
@@ -12,6 +13,7 @@ const router = createBrowserRouter([
   { path: "/login", element: <Login /> },
   { path: "/register", element: <Register /> },
   { path: "/dashboard", element: <VendorDashboard /> },
+  { path: "/dashboard/cart/:id", element: <CartDetail /> },
   { path: "/map", element: <MapView /> },
   { path: "/forgot-password", element: <ForgotPassword /> },
   { path: "/reset-password", element: <ResetPassword /> },

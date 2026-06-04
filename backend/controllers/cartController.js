@@ -183,3 +183,36 @@ export const getMyCarts = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const getCartById = async (req, res) => {
+  const { id } = req.params;
+  const owner_id = req.user.userId;
+
+  try {
+    const result = await pool.query(
+      `SELECT
+         c.id,
+         c.name,
+         c.description,
+         c.is_active,
+         c.created_at,
+         cl.latitude,
+         cl.longitude,
+         cl.address,
+         cl.updated_at as location_updated_at
+       FROM carts c
+       LEFT JOIN cart_locations cl ON cl.cart_id = c.id
+       WHERE c.id = $1 AND c.owner_id = $2`,
+      [id, owner_id],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    res.status(200).json({ cart: result.rows[0] });
+  } catch (error) {
+    console.error("Get cart error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
