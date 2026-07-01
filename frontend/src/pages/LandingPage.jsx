@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import FloatingNav from "../Components/FloatingNav";
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -269,26 +270,7 @@ export default function LandingPage() {
       </footer>
 
       {/* ── FLOATING BOTTOM NAV ── */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-fit bg-white/90 rounded-full px-6 md:px-8 py-2 flex items-center gap-6 md:gap-8 shadow-[0_10px_40px_rgba(0,0,0,0.15)] backdrop-blur-md border border-white/30">
-        <button
-          onClick={() => navigate("/")}
-          className="text-orange-500 font-medium text-sm"
-        >
-          Home
-        </button>
-        <div
-          onClick={() => navigate("/")}
-          className="bg-amber-500 text-white px-5 md:px-6 py-2 rounded-full font-bold text-sm cursor-pointer hover:bg-orange-500 transition"
-        >
-          rollio
-        </div>
-        <button
-          onClick={() => navigate("/login")}
-          className="text-gray-500 hover:text-orange-500 transition text-sm"
-        >
-          Profile
-        </button>
-      </div>
+      <FloatingNav />
     </div>
   );
 }

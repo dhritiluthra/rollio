@@ -216,3 +216,110 @@ export const getCartById = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const getFoodItems = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM food_items WHERE cart_id = $1 ORDER BY id ASC",
+      [id],
+    );
+    res.status(200).json({ items: result.rows });
+  } catch (error) {
+    console.error("Get food items error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const addFoodItem = async (req, res) => {
+  const { id } = req.params;
+  const { name, price, description } = req.body;
+  const owner_id = req.user.userId;
+
+  try {
+    // Ownership check — verify this cart belongs to this vendor
+    const cartCheck = await pool.query(
+      "SELECT id FROM carts WHERE id = $1 AND owner_id = $2",
+      [id, owner_id],
+    );
+
+    if (cartCheck.rows.length === 0) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO food_items (cart_id, name, price, description)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [id, name, price, description],
+    );
+
+    res.status(201).json({ item: result.rows[0] });
+  } catch (error) {
+    console.error("Add food item error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const updateFoodItem = async (req, res) => {
+  const { id, itemId } = req.params;
+  const { name, price, description } = req.body;
+  const owner_id = req.user.userId;
+
+  try {
+    // Ownership check — verify cart belongs to this vendor
+    const cartCheck = await pool.query(
+      "SELECT id FROM carts WHERE id = $1 AND owner_id = $2",
+      [id, owner_id],
+    );
+
+    if (cartCheck.rows.length === 0) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    const result = await pool.query(
+      `UPDATE food_items
+       SET name = $1, price = $2, description = $3
+       WHERE id = $4 AND cart_id = $5
+       RETURNING *`,
+      [name, price, description, itemId, id],
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    res.status(200).json({ item: result.rows[0] });
+  } catch (error) {
+    console.error("Update food item error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const deleteFoodItem = async (req, res) => {
+  const { id, itemId } = req.params;
+  const owner_id = req.user.userId;
+
+  try {
+    // Ownership check
+    const cartCheck = await pool.query(
+      "SELECT id FROM carts WHERE id = $1 AND owner_id = $2",
+      [id, owner_id],
+    );
+
+    if (cartCheck.rows.length === 0) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    await pool.query("DELETE FROM food_items WHERE id = $1 AND cart_id = $2", [
+      itemId,
+      id,
+    ]);
+
+    res.status(200).json({ message: "Item deleted" });
+  } catch (error) {
+    console.error("Delete food item error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};

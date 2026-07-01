@@ -7,6 +7,10 @@ import {
   toggleCart,
   getMyCarts,
   getCartById,
+  getFoodItems,
+  addFoodItem,
+  updateFoodItem,
+  deleteFoodItem,
 } from "../controllers/cartController.js";
 
 const router = express.Router();
@@ -19,6 +23,13 @@ router.post("/", protect, vendorOnly, createCart);
 router.put("/location", protect, vendorOnly, updateLocation);
 router.put("/toggle", protect, vendorOnly, toggleCart);
 router.get("/my-carts", protect, vendorOnly, getMyCarts);
+
+// Food items — public GET, protected POST
+router.get("/:id/items", getFoodItems);
+router.post("/:id/items", protect, vendorOnly, addFoodItem);
+
+router.put("/:id/items/:itemId", protect, vendorOnly, updateFoodItem);
+router.delete("/:id/items/:itemId", protect, vendorOnly, deleteFoodItem);
 
 router.get("/:id", protect, vendorOnly, getCartById);
 
