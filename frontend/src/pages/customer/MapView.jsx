@@ -85,6 +85,7 @@ export default function MapView() {
       const response = await api.get("/carts/nearby", {
         params: { latitude, longitude, radius },
       });
+      console.log("Near by carts ::", response.data.carts);
       setCarts(response.data.carts);
     } catch (err) {
       console.error("Failed to fetch carts:", err);
