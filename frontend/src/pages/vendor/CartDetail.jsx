@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import FoodItemForm from "./FoodItemForm.jsx";
 import api from "../../api/axios.js";
+import FoodItemDetails from "./FoodItemDetails.jsx";
 
 export default function CartDetail() {
   const { id } = useParams();
@@ -21,25 +21,13 @@ export default function CartDetail() {
     address: "",
   });
   const [savingLocation, setSavingLocation] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-
-  // Food item form state
-  const [showItemForm, setShowItemForm] = useState(false);
-  const [newItem, setNewItem] = useState({
-    name: "",
-    price: "",
-    description: "",
-  });
-  const [foodItems, setFoodItems] = useState([]);
-  const [savingItem, setSavingItem] = useState(false);
 
   // Toggle loading state
   const [toggling, setToggling] = useState(false);
 
   useEffect(() => {
     fetchCart();
-    fetchFoodItems();
-  }, []);
+  });
 
   const fetchCart = async () => {
     try {
@@ -59,15 +47,6 @@ export default function CartDetail() {
       setError("Failed to load cart");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchFoodItems = async () => {
-    try {
-      const response = await api.get(`/carts/${id}/items`);
-      setFoodItems(response.data.items);
-    } catch (err) {
-      console.error("Failed to load food items");
     }
   };
 
@@ -104,91 +83,6 @@ export default function CartDetail() {
     } finally {
       setSavingLocation(false);
     }
-  };
-
-  // Rename to handleSubmitItem — handles both add and update
-  const handleSubmitItem = async (e) => {
-    e.preventDefault();
-    setSavingItem(true);
-
-    try {
-      if (editingItem) {
-        // UPDATE flow
-        const response = await api.put(`/carts/${id}/items/${editingItem.id}`, {
-          name: newItem.name,
-          price: parseFloat(newItem.price),
-          description: newItem.description,
-        });
-
-        // Update that one item in local state
-        // map returns a new array — replaces the matching item, keeps rest
-        setFoodItems((prev) =>
-          prev.map((item) =>
-            item.id === editingItem.id ? response.data.item : item,
-          ),
-        );
-      } else {
-        // ADD flow
-        const response = await api.post(`/carts/${id}/items`, {
-          name: newItem.name,
-          price: parseFloat(newItem.price),
-          description: newItem.description,
-        });
-
-        // Append new item to existing list
-        setFoodItems((prev) => [...prev, response.data.item]);
-      }
-
-      // Reset form either way
-      handleCancelItem();
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to save item");
-    } finally {
-      setSavingItem(false);
-    }
-  };
-
-  // When pencil icon is clicked — populate form with existing data
-  const handleEditClick = (item) => {
-    setEditingItem(item);
-    setNewItem({
-      name: item.name,
-      price: item.price,
-      description: item.description || "",
-    });
-    setShowItemForm(true);
-  };
-
-  // When form is cancelled — reset everything
-  const handleCancelItem = () => {
-    setShowItemForm(false);
-    setEditingItem(null);
-    setNewItem({ name: "", price: "", description: "" });
-  };
-
-  const handleDeleteItem = async (itemId) => {
-    // Simple confirm before deleting
-    if (!window.confirm("Delete this item?")) return;
-
-    try {
-      await api.delete(`/carts/${id}/items/${itemId}`);
-      // Remove from local state instead of refetching
-      // filter returns a new array without the deleted item
-      setFoodItems((prev) => prev.filter((item) => item.id !== itemId));
-    } catch (err) {
-      setError("Failed to delete item");
-    }
-  };
-  // CartDetail
-  const onItemSuccess = (savedItem, mode) => {
-    if (mode === "add") {
-      setFoodItems((prev) => [...prev, savedItem]);
-    } else {
-      setFoodItems((prev) =>
-        prev.map((item) => (item.id === savedItem.id ? savedItem : item)),
-      );
-    }
-    handleCancelItem();
   };
 
   if (loading) {
@@ -430,7 +324,6 @@ export default function CartDetail() {
                 : "Set location first to go live"}
         </button>
 
-        {/* Hint text below toggle button */}
         {!cart.latitude && (
           <p className="text-center text-gray-400 text-xs -mt-2">
             You need to set a location before going live
@@ -438,109 +331,7 @@ export default function CartDetail() {
         )}
 
         {/* ── FOOD ITEMS CARD ── */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
-              Menu Items
-            </h2>
-            {/* Only show Add button when form is hidden */}
-            {!showItemForm && (
-              <button
-                onClick={() => {
-                  setEditingItem(null); // make sure we're in add mode
-                  setNewItem({ name: "", price: "", description: "" });
-                  setShowItemForm(true);
-                }}
-                className="text-orange-500 text-xs font-medium hover:underline"
-              >
-                + Add Item
-              </button>
-            )}
-          </div>
-
-          {/* Add / Edit form — same form, different mode */}
-          {showItemForm && (
-            <FoodItemForm
-              cartId={id}
-              editingItem={editingItem}
-              onSuccess={onItemSuccess}
-              onCancel={handleCancelItem}
-            />
-          )}
-
-          {/* Food items list */}
-          {foodItems.length === 0 ? (
-            <p className="text-gray-400 text-sm">
-              No items yet. Add what your cart sells.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-3">
-              {foodItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
-                >
-                  <div>
-                    <p className="text-gray-800 text-sm font-medium">
-                      {item.name}
-                    </p>
-                    {item.description && (
-                      <p className="text-gray-400 text-xs mt-0.5">
-                        {item.description}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <p className="text-orange-500 font-semibold text-sm">
-                      ₹{item.price}
-                    </p>
-
-                    {/* Edit button */}
-                    <button
-                      onClick={() => handleEditClick(item)}
-                      className="text-gray-400 hover:text-orange-500 transition"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                        />
-                      </svg>
-                    </button>
-
-                    {/* Delete button */}
-                    <button
-                      onClick={() => handleDeleteItem(item.id)}
-                      className="text-gray-400 hover:text-red-500 transition"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <FoodItemDetails />
       </div>
     </div>
   );

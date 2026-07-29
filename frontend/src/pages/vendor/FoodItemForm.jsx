@@ -29,7 +29,7 @@ export default function FoodItemForm({
     }
   }, [editingItem]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmitItem = async (e) => {
     e.preventDefault();
     setSaving(true);
     setError(null);
@@ -64,7 +64,7 @@ export default function FoodItemForm({
 
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={handleSubmitItem}
       className="mb-4 flex flex-col gap-3 pb-4 border-b border-gray-100"
     >
       <p className="text-sm font-medium text-gray-700">

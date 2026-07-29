@@ -75,3 +75,14 @@ CREATE TABLE IF NOT EXISTS public.food_items
         ON UPDATE NO ACTION
         ON DELETE CASCADE
 )
+
+CREATE TABLE cart_categories (
+  id       SERIAL PRIMARY KEY,
+  cart_id  INTEGER REFERENCES carts(id) ON DELETE CASCADE,
+  category TEXT NOT NULL CHECK (category IN (
+    'Chaat', 'Momos', 'Juice & Beverages',
+    'Meals', 'Snacks', 'Desserts',
+    'South Indian', 'Chinese', 'Other'
+  )),
+  UNIQUE(cart_id, category)
+);
