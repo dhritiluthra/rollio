@@ -7,6 +7,9 @@ import {
   toggleCart,
   getMyCarts,
   getCartById,
+  getPublicCart,
+  getReviews,
+  addReview,
   getFoodItems,
   addFoodItem,
   updateFoodItem,
@@ -17,6 +20,9 @@ const router = express.Router();
 
 // Public — anyone can browse
 router.get("/nearby", getNearbyCarts);
+router.get("/:id/public", getPublicCart);
+router.get("/:id/reviews", getReviews);
+router.post("/:id/reviews", protect, addReview);
 
 // Protected — must be logged in AND be a vendor
 router.post("/", protect, vendorOnly, createCart);

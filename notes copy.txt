@@ -1,0 +1,576 @@
+Updated todo list
+
+## WebSockets — what they are and how yours work
+
+### The problem with regular HTTP
+
+Every HTTP request is a **complete conversation**:
+
+```
+Browser: "Hey, give me the nearby carts"
+Server:  "Here are 5 carts"
+         [connection closed]
+
+Browser: "Hey, any new carts?" (3 seconds later)
+Server:  "Still 5 carts"
+         [connection closed]
+```
+
+This is called **polling** — the browser keeps asking. It's wasteful and slow.
+
+---
+
+### What a WebSocket is
+
+A WebSocket starts as an HTTP request but then **upgrades** into a persistent, two-way pipe:
+
+```
+Browser: "Hey, I want to upgrade to WebSocket"
+Server:  "Agreed. Connection open."
+         [connection stays open forever]
+
+Server:  "A vendor just went live" (pushed 10 min later, unprompted)
+Server:  "That cart just moved"    (pushed 2 min later)
+Server:  "A cart went offline"     (pushed whenever it happens)
+```
+
+The server can talk **first**, at any time. No asking required.
+
+---
+
+### How it works in your code specifically
+
+**Backend — the server side** (index.js):
+```js
+const server = createServer(app);       // wrap Express in a plain HTTP server
+const wss = new WebSocketServer({ server }); // attach WS to same port
+```
+Both `http://localhost:5000` (your REST API) and `ws://localhost:5000` (WebSocket) now live on **the same port**. The server detects which protocol the browser is using from the request headers and routes accordingly.
+
+When a vendor goes live, cartController.js calls:
+```js
+broadcast({ type: "cart_live", cart: { ... } });
+```
+This loops through every connected browser tab and sends that JSON message to all of them instantly.
+
+---
+
+**Frontend — the browser side** (MapView.jsx):
+```js
+const ws = new WebSocket("ws://localhost:5000");
+// Now this tab has a permanent open channel to the server
+
+ws.onmessage = (event) => {
+  const msg = JSON.parse(event.data);
+  // server pushed something — react to it
+};
+```
+
+Your three events and what happens:
+
+| Server pushes | What your code does |
+|---|---|
+| `cart_offline` | Removes cart from `carts` state immediately — no re-fetch |
+| `cart_live` | Calls `fetchCarts()` so the backend calculates the distance |
+| `location_update` | Updates just `latitude`/`longitude` on that one cart in state |
+
+---
+
+### The reconnect logic
+
+```js
+ws.onclose = () => {
+  if (mountedRef.current) setTimeout(connect, 3000);
+};
+ws.onerror = () => ws.close(); // error → triggers onclose → reconnect
+```
+
+If the connection drops (server restart, wifi blip), the browser automatically tries again in 3 seconds. `mountedRef.current` is checked so it doesn't try to reconnect after the user has already left the `/map` page.
+
+---
+
+### Why `useRef` instead of `useState` for the socket
+
+```js
+const wsRef = useRef(null); // ✅ stores the socket, no re-render
+const [ws, setWs] = useState(null); // ❌ would trigger a re-render every time
+```
+
+The WebSocket object is **infrastructure**, not UI data. Storing it in state would cause unnecessary re-renders every time the connection object changes. A ref holds the value silently.
+
+Updated todo list
+
+`_wss.clients` is a **`Set`** that the `ws` library automatically maintains — it contains one entry per browser tab currently connected to your WebSocket server.
+
+```
+_wss.clients = Set {
+  WebSocket { readyState: 1, ... },   ← Tab 1 (Dhriti's phone)
+  WebSocket { readyState: 1, ... },   ← Tab 2 (someone else's browser)
+  WebSocket { readyState: 3, ... },   ← Tab 3 (disconnecting, readyState = CLOSED)
+}
+```
+
+You don't manage this Set yourself — `ws` adds a client when a browser connects and removes it when it disconnects. You just iterate over it to send to everyone.
+
+The `readyState === 1` check is why that guard exists:
+
+| `readyState` | Meaning |
+|---|---|
+| `0` | CONNECTING — handshake in progress |
+| `1` | OPEN — safe to send |
+| `2` | CLOSING — goodbye in progress |
+| `3` | CLOSED — gone |
+
+Sending to a non-OPEN socket would throw an error, so you skip those.
+
+Updated todo list
+
+## REST API vs WebSocket
+
+### REST API — "ask and answer"
+
+**REST** stands for **Representational State Transfer**. The name sounds fancy but the idea is simple: it's a set of conventions for how a browser and server talk over HTTP.
+
+The core rule: **every request is independent and self-contained.**
+
+```
+Browser → POST /auth/login   { email, password }
+Server  ← 200 { token: "abc123" }
+[done, connection closed, server forgets you exist]
+
+Browser → GET /carts/nearby?lat=28.6&lng=77.2
+Server  ← 200 { carts: [...] }
+[done, connection closed]
+```
+
+Each request carries everything the server needs (URL, headers, body). The server reads it, does the work, replies, and **forgets**. This is called **stateless** — the server holds no memory of previous requests.
+
+The "representational" part just means you're exchanging **representations of resources** — a cart, a user, a food item — usually as JSON.
+
+---
+
+### The REST conventions you're already using
+
+| What you want | Method | URL |
+|---|---|---|
+| Create something | `POST` | `/carts` |
+| Read something | `GET` | `/carts/nearby` |
+| Update something | `PUT` | `/carts/location` |
+| Delete something | `DELETE` | `/carts/:id/items/:itemId` |
+
+That `GET/POST/PUT/DELETE` pattern is the heart of REST. You already follow it in your carts.js.
+
+---
+
+### WebSocket — "stay on the line"
+
+WebSocket breaks the "every request is independent" rule on purpose.
+
+```
+Browser → "I want to upgrade to WebSocket"
+Server  ← "Agreed"
+[connection stays open]
+
+... 10 minutes later ...
+
+Server  → { type: "cart_offline", cartId: 5 }   ← server talked first, unprompted
+```
+
+The server can **initiate** a message. REST cannot do this — REST always waits for the browser to ask.
+
+---
+
+### Side by side
+
+| | REST | WebSocket |
+|---|---|---|
+| Who talks first | Always the browser | Either side |
+| Connection | Opens, gets answer, closes | Stays open |
+| Good for | CRUD operations, auth, search | Live updates, chat, notifications |
+| Your usage | Login, fetch carts, add food items | Cart goes live/offline, location moves |
+
+---
+
+### The analogy
+
+**REST** = sending a letter. You write, they reply, done.
+
+**WebSocket** = a phone call that stays open. Either person can talk whenever something happens.
+
+In Rollio, you use both for different jobs — REST to fetch and mutate data, WebSocket to push live status changes. That's the standard pattern in most real-world apps.
+
+Updated todo list
+
+Yes — statelessness is the defining rule of REST.
+
+**Every request must carry all the information the server needs to fulfill it.** The server never remembers the previous request.
+
+This is why your auth token exists. Without it, the server has no way to know who you are:
+
+```
+GET /carts/my-carts
+Authorization: Bearer eyJhbGci...   ← you must send this every single time
+```
+
+If REST were stateful, you'd log in once and the server would "remember" you. But it doesn't — so the token is your identity card that you hand over with every request.
+
+---
+
+### The practical consequence
+
+When you call `toggleCart`, the server doesn't know "oh this is the same person who called `updateLocation` 2 seconds ago." It re-reads the token, re-verifies it, and re-fetches the user from the database every time. That's by design.
+
+```
+PUT /carts/toggle    + token  → server checks token, finds user, toggles cart
+PUT /carts/location  + token  → server checks token, finds user, updates location
+```
+
+Two completely independent transactions. No shared memory between them.
+
+---
+
+### Why this is actually a good thing
+
+- **Scalability** — any server in a cluster can handle any request, because no session is stored on a specific machine
+- **Simplicity** — debugging is easier; each request tells the full story
+- **Reliability** — if the server restarts, nothing is lost (there was nothing to lose)
+
+WebSockets are the opposite — the server *does* hold state (the open connection itself), which is exactly why they're used sparingly, only where real-time push is genuinely needed.
+
+
+//////////////////////////////////////////////////////////////////////////////////
+Updated todo list
+
+## React's three core hooks — explained simply
+
+---
+
+### `useState` — remember a value and re-render when it changes
+
+Think of it as a **variable that React watches**. When it changes, the screen updates.
+
+```jsx
+function Counter() {
+  const [count, setCount] = useState(0); // count starts at 0
+
+  return (
+    <button onClick={() => setCount(count + 1)}>
+      Clicked {count} times
+    </button>
+  );
+}
+```
+
+**The rule:** you can't just do `count = count + 1`. You must call `setCount()`. That's how React knows to re-draw the screen.
+
+In Rollio, `carts`, `screen`, `radius`, `selectedCart` are all `useState` — because when they change, the UI needs to update.
+
+---
+
+### `useRef` — remember a value but DON'T re-render
+
+A ref is a box. You can put anything in it. Changing it does **nothing to the screen**.
+
+```jsx
+function Timer() {
+  const intervalRef = useRef(null); // just a box
+
+  const start = () => {
+    intervalRef.current = setInterval(() => console.log("tick"), 1000);
+  };
+
+  const stop = () => {
+    clearInterval(intervalRef.current); // reach into the box, get the timer, stop it
+  };
+
+  return <><button onClick={start}>Start</button><button onClick={stop}>Stop</button></>;
+}
+```
+
+The interval ID is stored in the ref because you need to reference it later — but showing it on screen would be meaningless, so you don't need a re-render.
+
+In Rollio, `wsRef` holds the WebSocket object for the same reason — you need to close it on cleanup, but displaying it would be pointless.
+
+---
+
+### `useEffect` — run code when something changes (or once on load)
+
+Think of it as **"do this side effect when X happens."**
+
+```jsx
+function UserProfile({ userId }) {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    fetch(`/users/${userId}`)
+      .then(res => res.json())
+      .then(data => setUser(data));
+  }, [userId]); // ← the dependency array
+
+  return <p>{user?.name}</p>;
+}
+```
+
+The **dependency array** `[userId]` controls when it runs:
+
+| Dependency array | When it runs |
+|---|---|
+| `[]` (empty) | Once, when the component first appears on screen |
+| `[userId]` | Once on load, then again every time `userId` changes |
+| nothing (omitted) | Every single render — almost never what you want |
+
+---
+
+### How all three connect in your MapView
+
+```jsx
+// useState — UI data, re-renders trigger screen updates
+const [carts, setCarts] = useState([]);
+const [screen, setScreen] = useState("discovery");
+
+// useRef — infrastructure, changes don't touch the screen
+const wsRef = useRef(null);       // holds the WebSocket
+const mountedRef = useRef(true);  // tracks whether component is alive
+
+// useEffect [] — runs once when MapView first loads
+useEffect(() => {
+  navigator.geolocation.getCurrentPosition(({ coords }) => {
+    setUserLocation(coords); // ← this triggers the next useEffect below
+  });
+}, []);
+
+// useEffect [userLocation] — runs once when location arrives
+useEffect(() => {
+  if (userLocation) {
+    fetchCarts(...);   // load the discovery list
+    connectWebSocket(); // open the live feed
+  }
+}, [userLocation]);
+```
+
+**The chain in plain English:**
+1. Component loads → `useEffect []` fires → asks for GPS
+2. GPS arrives → `setUserLocation()` → React re-renders
+3. Re-render triggers `useEffect [userLocation]` → fetch carts + open WebSocket
+4. WebSocket receives `cart_offline` → `setCarts(prev => ...)` → React re-renders → cart disappears from screen
+
+Every screen update traces back to a `setState` call. `useEffect` is just the trigger that decides *when* to call it.
+
+//////////////////////////////////////////////////////////////////////////////////
+
+Updated todo list
+
+`useRef` returns an **object with one property: `.current`**. That's it. That's the whole thing.
+
+```js
+const wsRef = useRef(null);
+// wsRef looks like this: { current: null }
+```
+
+React chose this design deliberately — wrapping the value in an object means you can pass `wsRef` around to different functions, and they all point to the **same box**. When any of them write to `.current`, everyone else sees the update.
+
+---
+
+### Why `.current` and not just the value directly?
+
+If it were just `const wsRef = null`, you couldn't mutate it — reassigning a `const` is illegal in JS. But mutating a property on an object is fine:
+
+```js
+wsRef.current = new WebSocket(...)  // ✅ mutating the property — allowed
+wsRef = new WebSocket(...)          // ❌ reassigning the const — illegal
+```
+
+---
+
+### Where you use it in Rollio
+
+```js
+const wsRef = useRef(null);
+// { current: null }
+
+// When the WebSocket connects:
+wsRef.current = ws;
+// { current: WebSocket {...} }
+
+// When the component unmounts (cleanup):
+wsRef.current?.close();
+// reach into the box, grab the socket, close it
+```
+
+```js
+const mountedRef = useRef(true);
+// { current: true }
+
+// When the component unmounts:
+mountedRef.current = false;
+// { current: false }
+
+// Inside the reconnect timer:
+if (mountedRef.current) setTimeout(connect, 3000);
+// "is the component still alive? if yes, reconnect"
+```
+
+---
+
+### The mental model
+
+Think of `useRef` as a **locker**.
+
+- `wsRef` is the locker itself (the object `{ current: ... }`)
+- `wsRef.current` is what's **inside** the locker
+- You can swap what's inside at any time without React caring or re-rendering
+
+
+/////////////////////////////////////////////////
+Updated todo list
+
+## Why `mountedRef` exists
+
+### First — what is "unmounting"?
+
+In React, a component **mounts** when it appears on screen and **unmounts** when it disappears. For your `/map` route, that means:
+
+```
+User navigates to /map   → MapView mounts   (useEffect [] fires, GPS starts)
+User navigates away      → MapView unmounts (React removes it from the DOM)
+```
+
+---
+
+### The problem without `mountedRef`
+
+GPS is slow. It might take 2-3 seconds. Here's the race condition:
+
+```
+1. User visits /map → GPS request starts
+2. User immediately clicks back → MapView UNMOUNTS
+3. GPS responds 2 seconds later → callback fires
+4. Callback calls setUserLocation() ... on a component that no longer exists
+```
+
+React will throw a warning: *"Can't perform a state update on an unmounted component."* And worse, the WebSocket reconnect timer would keep firing forever in the background, trying to reconnect to a page the user already left.
+
+---
+
+### How `mountedRef` solves it
+
+```js
+// On mount — set to true
+useEffect(() => {
+  mountedRef.current = true;
+
+  navigator.geolocation.getCurrentPosition(
+    ({ coords }) => {
+      if (!mountedRef.current) return; // ← bail if user already left
+      setUserLocation(...);
+    }
+  );
+
+  return () => { mountedRef.current = false; }; // ← runs on UNMOUNT
+}, []);
+```
+
+That `return () => { ... }` inside a `useEffect` is called the **cleanup function**. React calls it automatically when the component unmounts.
+
+---
+
+### How React knows when to call cleanup
+
+React tracks the component's lifetime. When the user navigates away:
+
+1. React removes MapView from the screen
+2. React immediately calls **every cleanup function** from every `useEffect` in that component
+
+```js
+useEffect(() => {
+  // setup: runs on mount
+  mountedRef.current = true;
+  connect();
+
+  return () => {
+    // cleanup: runs on unmount — React calls this automatically
+    mountedRef.current = false;
+    wsRef.current?.close();
+  };
+}, [userLocation]);
+```
+
+So you don't detect unmounting yourself — you just **register what to do when it happens** via the cleanup return.
+
+---
+
+### Why `useRef` and not `useState` for this flag
+
+If you used `useState(true)` and set it to `false` on unmount — that itself would be a state update on an unmounted component, causing the exact problem you're trying to prevent. A ref mutates silently with no React involvement, so it's safe.
+
+///////////////////////////////////////////////
+
+Updated todo list
+
+These three are **event handlers** on the WebSocket object — the same idea as `onClick` on a button, but for connection events instead of user clicks.
+
+---
+
+### `onopen` — connection succeeded
+
+```js
+ws.onopen = () => console.log("[WS] Connected to Rollio live feed");
+```
+Fires once when the handshake completes and the channel is open. You could use this to send an initial message to the server if needed. Right now it just logs so you can confirm in DevTools that the connection worked.
+
+---
+
+### `onmessage` — server pushed something
+
+```js
+ws.onmessage = (event) => {
+  const msg = JSON.parse(event.data); // event.data is always a raw string
+  // decide what to do based on msg.type
+};
+```
+Fires every time the server sends anything. `event.data` is always a plain string, so you `JSON.parse` it back into an object to read `msg.type`.
+
+---
+
+### `onclose` — connection dropped
+
+```js
+ws.onclose = () => {
+  console.log("[WS] Disconnected. Reconnecting in 3s...");
+  if (mountedRef.current) setTimeout(connect, 3000);
+};
+```
+Fires whenever the connection closes — whether the server restarted, wifi dropped, or you called `ws.close()` yourself. The `setTimeout(connect, 3000)` calls the same `connect` function again after 3 seconds, creating a self-healing loop. `mountedRef.current` stops that loop if the user already left the page.
+
+---
+
+### `onerror` — something went wrong
+
+```js
+ws.onerror = () => ws.close(); // triggers onclose -> reconnect
+```
+Fires on network errors. The WebSocket spec says a connection that errors will also close — but not always cleanly. Calling `ws.close()` manually ensures `onclose` always fires, which is where the reconnect logic lives. So `onerror` just guarantees the reconnect path is always taken.
+
+---
+
+### The full flow visualised
+
+```
+connect() called
+    ↓
+new WebSocket(url) — handshake starts
+    ↓
+onopen fires         → "we're live"
+    ↓
+onmessage fires      → server pushed a cart event → update state
+onmessage fires      → another event
+...
+    ↓
+wifi drops / server restarts
+    ↓
+onerror fires        → calls ws.close()
+    ↓
+onclose fires        → setTimeout(connect, 3000)
+    ↓
+3 seconds later → connect() called again → cycle repeats
+```

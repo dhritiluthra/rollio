@@ -3,6 +3,7 @@ import LandingPage from "./pages/LandingPage.jsx";
 import Login from "./pages/auth/Login.jsx";
 import Register from "./pages/auth/Register.jsx";
 import MapView from "./pages/customer/MapView.jsx";
+import CartPage from "./pages/customer/CartPage.jsx";
 import VendorDashboard from "./pages/vendor/VendorDashboard.jsx";
 import CartDetail from "./pages/vendor/CartDetail.jsx";
 import ForgotPassword from "./pages/auth/ForgotPassword.jsx";
@@ -30,6 +31,7 @@ const router = createBrowserRouter([
     ),
   },
   { path: "/map", element: <MapView /> },
+  { path: "/cart/:id", element: <CartPage /> },
   { path: "/forgot-password", element: <ForgotPassword /> },
   { path: "/reset-password", element: <ResetPassword /> },
 ]);

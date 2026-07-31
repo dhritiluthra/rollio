@@ -1,4 +1,5 @@
 import pool from "../config/db.js";
+import { broadcast } from "../src/utils/broadcast.js";
 
 // ── CREATE CART ───────────────────────────────
 export const createCart = async (req, res) => {
@@ -63,6 +64,9 @@ export const updateLocation = async (req, res) => {
       message: "Location updated",
       location: result.rows[0],
     });
+
+    // Push the new coords to every connected customer tab so map pins move live.
+    broadcast({ type: "location_update", cartId: cart_id, latitude, longitude, address });
   } catch (error) {
     console.error("Update location error:", error.message);
     res.status(500).json({ message: "Server error" });
@@ -71,47 +75,72 @@ export const updateLocation = async (req, res) => {
 
 // ── GET NEARBY CARTS ──────────────────────────
 export const getNearbyCarts = async (req, res) => {
-  const { latitude, longitude, radius = 5 } = req.query;
-  // radius is in kilometers, default 5km
-  const getNearByQuery = `SELECT * FROM (
-        SELECT
-          c.id,
-          c.name,
-          c.description,
-          cl.latitude,
-          cl.longitude,
-          cl.address,
-          cl.updated_at,
-          (
-            6371 * acos(
-              cos(radians($1)) * cos(radians(cl.latitude)) *
-              cos(radians(cl.longitude) - radians($2)) +
-              sin(radians($1)) * sin(radians(cl.latitude))
-            )
-          ) AS distance_km
-        FROM carts c
-        JOIN cart_locations cl ON cl.cart_id = c.id
-        WHERE c.is_active = true
-      ) AS carts_with_distance
-      WHERE distance_km < $3
-      ORDER BY distance_km ASC`;
+  const { latitude, longitude, radius = 5, search, category } = req.query;
+
+  // $1 = user lat, $2 = user lng, $3 = radius km
+  // $4 = search text (null = no filter), $5 = category (null = no filter)
+  const getNearByQuery = `
+    SELECT * FROM (
+      SELECT
+        c.id,
+        c.name,
+        c.description,
+        cl.latitude,
+        cl.longitude,
+        cl.address,
+        cl.updated_at,
+        (
+          6371 * acos(
+            cos(radians($1)) * cos(radians(cl.latitude)) *
+            cos(radians(cl.longitude) - radians($2)) +
+            sin(radians($1)) * sin(radians(cl.latitude))
+          )
+        ) AS distance_km,
+        (
+          SELECT json_agg(sub)
+          FROM (
+            SELECT id, name, price
+            FROM food_items
+            WHERE cart_id = c.id AND is_available = true
+            ORDER BY id
+            LIMIT 3
+          ) sub
+        ) AS top_items
+      FROM carts c
+      JOIN cart_locations cl ON cl.cart_id = c.id
+      WHERE c.is_active = true
+        AND ($4::text IS NULL OR (
+          c.name ILIKE '%' || $4 || '%'
+          OR c.description ILIKE '%' || $4 || '%'
+          OR EXISTS (
+            SELECT 1 FROM food_items fi
+            WHERE fi.cart_id = c.id
+              AND fi.is_available = true
+              AND fi.name ILIKE '%' || $4 || '%'
+          )
+        ))
+        AND ($5::text IS NULL OR EXISTS (
+          SELECT 1 FROM food_items fi
+          WHERE fi.cart_id = c.id
+            AND fi.is_available = true
+            AND LOWER(fi.category) = LOWER($5)
+        ))
+    ) AS carts_with_distance
+    WHERE distance_km < $3
+    ORDER BY distance_km ASC
+  `;
+
   try {
-    // Haversine formula — calculates distance between two GPS coordinates
     const result = await pool.query(getNearByQuery, [
       latitude,
       longitude,
       radius,
+      search || null,
+      category || null,
     ]);
 
-    // console.log("GetNearByQuery", {
-    //   getNearByQuery,
-    //   values: [latitude, longitude, radius],
-    // });
-    console.log("Result for getNearByCarts Query", result.rows);
-    res.status(200).json({
-      count: result.rows.length,
-      carts: result.rows,
-    });
+    console.log("getNearByCarts result count:", result.rows.length);
+    res.status(200).json({ count: result.rows.length, carts: result.rows });
   } catch (error) {
     console.error("Nearby carts error:", error.message);
     res.status(500).json({ message: "Server error" });
@@ -143,8 +172,26 @@ export const toggleCart = async (req, res) => {
       [!currentStatus, cart_id],
     );
 
+    const newStatus = result.rows[0].is_active;
+
+    // Broadcast the status change to all connected customers in real-time.
+    // If the cart went live, also grab its location so the frontend can
+    // place it on the map without a round-trip.
+    if (newStatus) {
+      const locResult = await pool.query(
+        `SELECT latitude, longitude, address FROM cart_locations WHERE cart_id = $1`,
+        [cart_id],
+      );
+      broadcast({
+        type: "cart_live",
+        cart: { ...result.rows[0], ...locResult.rows[0] },
+      });
+    } else {
+      broadcast({ type: "cart_offline", cartId: cart_id });
+    }
+
     res.status(200).json({
-      message: `Cart is now ${!currentStatus ? "active" : "offline"}`,
+      message: `Cart is now ${newStatus ? "active" : "offline"}`,
       cart: result.rows[0],
     });
   } catch (error) {
@@ -213,6 +260,66 @@ export const getCartById = async (req, res) => {
     res.status(200).json({ cart: result.rows[0] });
   } catch (error) {
     console.error("Get cart error:", error.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getPublicCart = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT c.id, c.name, c.description, c.is_active,
+              cl.latitude, cl.longitude, cl.address, cl.updated_at as location_updated_at
+       FROM carts c
+       LEFT JOIN cart_locations cl ON cl.cart_id = c.id
+       WHERE c.id = $1`,
+      [id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ message: "Cart not found" });
+    res.status(200).json({ cart: result.rows[0] });
+  } catch (err) {
+    console.error("Get public cart error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const getReviews = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT r.id, r.rating, r.comment, r.created_at, u.name as user_name
+       FROM reviews r
+       JOIN users u ON u.id = r.user_id
+       WHERE r.cart_id = $1
+       ORDER BY r.created_at DESC`,
+      [id]
+    );
+    res.status(200).json({ reviews: result.rows });
+  } catch (err) {
+    console.error("Get reviews error:", err.message);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const addReview = async (req, res) => {
+  const { id } = req.params;
+  const { rating, comment } = req.body;
+  const user_id = req.user.userId;
+  if (!rating || rating < 1 || rating > 5) {
+    return res.status(400).json({ message: "Rating must be between 1 and 5" });
+  }
+  try {
+    const result = await pool.query(
+      `INSERT INTO reviews (cart_id, user_id, rating, comment)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (cart_id, user_id)
+       DO UPDATE SET rating = EXCLUDED.rating, comment = EXCLUDED.comment, created_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [id, user_id, rating, comment || null]
+    );
+    res.status(201).json({ review: result.rows[0] });
+  } catch (err) {
+    console.error("Add review error:", err.message);
     res.status(500).json({ message: "Server error" });
   }
 };

@@ -7,34 +7,39 @@ export default function CartLocationForm({ cart, fetchCart, setError }) {
   const { id } = useParams();
   // Location form state
   const [showLocationForm, setShowLocationForm] = useState(false);
-  const [locationData, setLocationData] = useState({
-    latitude: "",
-    longitude: "",
-    address: "",
-  });
+  const [address, setAddress] = useState("");
   const [savingLocation, setSavingLocation] = useState(false);
 
   useEffect(() => {
-    // Pre-fill location form if location already exists
-    setLocationData({
-      latitude: cart.latitude || "",
-      longitude: cart.longitude || "",
-      address: cart.address || "",
-    });
-  }, [cart]);
+    // Don't overwrite user input while form is open
+    if (!showLocationForm) {
+      setAddress(cart.address || "");
+    }
+  }, [cart, showLocationForm]);
 
   const handleLocationSubmit = async (e) => {
     e.preventDefault();
     setSavingLocation(true);
     try {
+      // Geocode address via Nominatim
+      const geoRes = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
+        { headers: { "Accept-Language": "en" } }
+      );
+      const results = await geoRes.json();
+      if (!results.length) {
+        setError("Address not found. Try a more specific address.");
+        return;
+      }
+      const { lat, lon } = results[0];
       await api.put("/carts/location", {
         cart_id: parseInt(id),
-        latitude: parseFloat(locationData.latitude),
-        longitude: parseFloat(locationData.longitude),
-        address: locationData.address,
+        latitude: parseFloat(lat),
+        longitude: parseFloat(lon),
+        address,
       });
       setShowLocationForm(false);
-      fetchCart(); // refresh to show new location
+      fetchCart();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to update location");
     } finally {
@@ -86,73 +91,20 @@ export default function CartLocationForm({ cart, fetchCart, setError }) {
             onSubmit={handleLocationSubmit}
             className="mt-4 flex flex-col gap-3"
           >
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1">
-                <label
-                  htmlFor="lat"
-                  className="text-xs text-gray-500 font-medium"
-                >
-                  Latitude
-                </label>
-                <input
-                  id="lat"
-                  type="number"
-                  step="any"
-                  value={locationData.latitude}
-                  onChange={(e) =>
-                    setLocationData({
-                      ...locationData,
-                      latitude: e.target.value,
-                    })
-                  }
-                  placeholder="28.6139"
-                  required
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-400 transition"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label
-                  htmlFor="lng"
-                  className="text-xs text-gray-500 font-medium"
-                >
-                  Longitude
-                </label>
-                <input
-                  id="lng"
-                  type="number"
-                  step="any"
-                  value={locationData.longitude}
-                  onChange={(e) =>
-                    setLocationData({
-                      ...locationData,
-                      longitude: e.target.value,
-                    })
-                  }
-                  placeholder="77.2090"
-                  required
-                  className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-400 transition"
-                />
-              </div>
-            </div>
             <div className="flex flex-col gap-1">
               <label
                 htmlFor="address"
                 className="text-xs text-gray-500 font-medium"
               >
-                Address{" "}
-                <span className="text-gray-400 font-normal">(optional)</span>
+                Address
               </label>
               <input
                 id="address"
                 type="text"
-                value={locationData.address}
-                onChange={(e) =>
-                  setLocationData({
-                    ...locationData,
-                    address: e.target.value,
-                  })
-                }
-                placeholder="e.g. Near Connaught Place Metro Gate 4"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="e.g. Connaught Place, New Delhi"
+                required
                 className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-400 transition"
               />
             </div>

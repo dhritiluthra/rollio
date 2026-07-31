@@ -22,7 +22,7 @@ export default function FoodItemDetails() {
   };
   useEffect(() => {
     fetchFoodItems();
-  }, []);
+  }, [id]);
 
   // When pencil icon is clicked — populate form with existing data
   const handleEditClick = (item) => {
@@ -61,6 +61,9 @@ export default function FoodItemDetails() {
   };
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+      {error && (
+        <p className="text-red-500 text-xs mb-3">{error}</p>
+      )}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">
           Menu Items
