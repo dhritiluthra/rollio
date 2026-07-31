@@ -28,3 +28,83 @@ src/
 ├── Components/        → reusable bits (buttons, navbar, cards)
 ├── App.jsx            → routing lives here
 └── main.jsx           → entry point
+That's a much better UX decision. Here's why you're right:
+
+---
+
+**The problem with showing map directly:**
+
+- User lands on a full screen map with no context
+- They don't know what's nearby before they even search
+- Map feels overwhelming as a first screen
+- Forces the user to zoom/pan before they find anything useful
+
+---
+
+**Your flow is cleaner:**
+
+```
+/map page loads
+      ↓
+Clean search screen — "What are you craving?"
+Search bar + filter options (radius, category)
+      ↓
+User types "chaat" or "momos", hits enter
+      ↓
+Results page — toggle between List and Map view
+List view is default (less overwhelming)
+Map view on demand
+```
+
+This is exactly how good apps work — **Zomato shows list first, map is optional**. Swiggy same. The map is a power feature, not the landing experience.
+
+---
+
+**The two screens we're building:**
+
+**Screen 1 — Search/Discovery screen** (`/map`):
+```
+┌─────────────────────────────────────┐
+│           rollio                    │
+│    Find street food near you        │
+│                                     │
+│  ┌─────────────────────────────┐   │
+│  │ 🔍  What are you craving?   │   │
+│  └─────────────────────────────┘   │
+│                                     │
+│  Near me    1km  3km  5km  10km    │  ← radius filter
+│                                     │
+│  Categories:                        │
+│  [ All ] [ Chaat ] [ Momos ]       │
+│  [ Juice ] [ Meals ] [ Snacks ]    │
+│                                     │
+│  ──── Active right now ────         │
+│                                     │
+│  🟠 Taco Stand    0.2km   Open     │  ← live preview
+│  🟠 Chaat Corner  0.5km   Open     │     before search
+└─────────────────────────────────────┘
+```
+
+**Screen 2 — Results screen** (same page, different state):
+```
+┌─────────────────────────────────────┐
+│ ← "momos"              [List][Map] │
+│                                     │
+│  3 results · within 5km            │
+│                                     │
+│  ┌─────────────────────────────┐   │
+│  │ Momos Cart    0.3km  ●Live  │   │
+│  │ Best steamed momos in Delhi │   │
+│  │ Steamed ₹60 · Fried ₹70    │   │
+│  └─────────────────────────────┘   │
+│  ┌─────────────────────────────┐   │
+│  │ Street Bites  0.8km  ●Live  │   │
+│  └─────────────────────────────┘   │
+└─────────────────────────────────────┘
+```
+
+Toggle to map — same results, shown as pins.
+
+---
+
+**Before we start building — a few questions:**
