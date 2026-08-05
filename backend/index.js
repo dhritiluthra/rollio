@@ -14,7 +14,10 @@ const app = express();
 // allows frontend to talk to this backend
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173", // local dev
+      process.env.FRONTEND_URL, // production (from .env)
+    ],
     credentials: true,
   }),
 );
@@ -39,7 +42,7 @@ setWss(wss); // make `broadcast()` usable in controllers
 wss.on("connection", (ws) => {
   console.log("[WS] Client connected — total:", wss.clients.size);
   ws.on("close", () =>
-    console.log("[WS] Client disconnected — total:", wss.clients.size)
+    console.log("[WS] Client disconnected — total:", wss.clients.size),
   );
 });
 

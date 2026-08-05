@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../../api/axios.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import L from "leaflet";
+import { WS_URL } from "../../config.js";
 
 // ─── MAP ICONS ────────────────────────────────────────────────────────────────
 // Orange teardrop pin for vendor carts
@@ -29,7 +30,7 @@ const RADII = [1, 3, 5, 10];
 
 // The WebSocket URL — same host/port as the REST API, just ws:// scheme.
 // When both REST and WS share one HTTP server, this is all you need.
-const WS_URL = "ws://localhost:5000";
+// const WS_URL = "ws://localhost:5000";
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 //
@@ -86,17 +87,22 @@ export default function MapView() {
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         if (!mountedRef.current) return;
-        setUserLocation({ latitude: coords.latitude, longitude: coords.longitude });
+        setUserLocation({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        });
         setLocationLoading(false);
       },
       () => {
         if (!mountedRef.current) return;
         setLocationError("Please allow location access to find nearby carts");
         setLocationLoading(false);
-      }
+      },
     );
 
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   // ── Step 2: once we have location, load the discovery carts ──────────────────
@@ -132,19 +138,22 @@ export default function MapView() {
           // Remove the cart right away so the user doesn't walk to a closed stall.
           setCarts((prev) => prev.filter((c) => c.id !== msg.cartId));
           setSelectedCart((prev) => (prev?.id === msg.cartId ? null : prev));
-
         } else if (msg.type === "cart_live") {
           // Re-fetch so the backend can calculate distance and apply filters.
           fetchCarts(query, category, radius);
-
         } else if (msg.type === "location_update") {
           // Mutate only the coords — keeps the rest of the cart data intact.
           setCarts((prev) =>
             prev.map((c) =>
               c.id === msg.cartId
-                ? { ...c, latitude: msg.latitude, longitude: msg.longitude, address: msg.address }
-                : c
-            )
+                ? {
+                    ...c,
+                    latitude: msg.latitude,
+                    longitude: msg.longitude,
+                    address: msg.address,
+                  }
+                : c,
+            ),
           );
         }
       };
@@ -176,7 +185,8 @@ export default function MapView() {
         longitude: userLocation.longitude,
         radius: searchRadius,
         ...(searchQuery && { search: searchQuery }),
-        ...(searchCategory && searchCategory !== "All" && { category: searchCategory }),
+        ...(searchCategory &&
+          searchCategory !== "All" && { category: searchCategory }),
       };
       const response = await api.get("/carts/nearby", { params });
       setCarts(response.data.carts);
@@ -237,8 +247,18 @@ export default function MapView() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-6 text-center gap-4">
         <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center">
-          <svg className="w-7 h-7 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z" />
+          <svg
+            className="w-7 h-7 text-orange-500"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"
+            />
           </svg>
         </div>
         <h2 className="text-gray-800 font-semibold text-lg">Location needed</h2>
@@ -263,10 +283,14 @@ export default function MapView() {
       <div className="min-h-screen bg-gray-50 flex flex-col">
         {/* Header */}
         <div className="bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between shrink-0">
-          <h1 className="text-lg font-bold text-orange-500 tracking-widest uppercase">Rollio</h1>
+          <h1 className="text-lg font-bold text-orange-500 tracking-widest uppercase">
+            Rollio
+          </h1>
           {user ? (
             <button
-              onClick={() => navigate(user.role === "vendor" ? "/dashboard" : "/")}
+              onClick={() =>
+                navigate(user.role === "vendor" ? "/dashboard" : "/")
+              }
               className="text-sm text-gray-500 hover:text-orange-500 transition"
             >
               {user.role === "vendor" ? "Dashboard" : "Home"}
@@ -283,8 +307,12 @@ export default function MapView() {
 
         <div className="flex-1 px-5 pt-8 pb-28 overflow-y-auto">
           {/* Hero text */}
-          <p className="text-gray-400 text-sm mb-1">Find street food near you</p>
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">What are you craving?</h2>
+          <p className="text-gray-400 text-sm mb-1">
+            Find street food near you
+          </p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">
+            What are you craving?
+          </h2>
 
           {/* Search bar
             Submitting the form fires handleSearch, which switches to "results" screen.
@@ -292,9 +320,16 @@ export default function MapView() {
           <form onSubmit={handleSearch} className="relative mb-5">
             <svg
               className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"
+              />
             </svg>
             <input
               type="text"
@@ -349,14 +384,18 @@ export default function MapView() {
           {/* Active right now section */}
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs text-gray-400 font-medium whitespace-nowrap">Active right now</span>
+            <span className="text-xs text-gray-400 font-medium whitespace-nowrap">
+              Active right now
+            </span>
             <div className="flex-1 h-px bg-gray-200" />
           </div>
 
           {cartsLoading ? (
             <div className="flex justify-center py-8">
-              <div className="w-6 h-6 rounded-full border-2 border-orange-200 border-t-orange-500"
-                style={{ animation: "spin 1s linear infinite" }} />
+              <div
+                className="w-6 h-6 rounded-full border-2 border-orange-200 border-t-orange-500"
+                style={{ animation: "spin 1s linear infinite" }}
+              />
             </div>
           ) : carts.length === 0 ? (
             <p className="text-center text-gray-400 text-sm py-8">
@@ -387,13 +426,25 @@ export default function MapView() {
   //
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-
       {/* Results header */}
       <div className="bg-white border-b border-gray-100 px-5 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <button onClick={handleBack} className="text-gray-400 hover:text-gray-600 transition">
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          <button
+            onClick={handleBack}
+            className="text-gray-400 hover:text-gray-600 transition"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
           </button>
           <span className="font-medium text-gray-700 text-sm">"{query}"</span>
@@ -404,7 +455,9 @@ export default function MapView() {
           <button
             onClick={() => setViewMode("list")}
             className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-              viewMode === "list" ? "bg-white text-gray-800 shadow-sm" : "text-gray-500"
+              viewMode === "list"
+                ? "bg-white text-gray-800 shadow-sm"
+                : "text-gray-500"
             }`}
           >
             List
@@ -412,7 +465,9 @@ export default function MapView() {
           <button
             onClick={() => setViewMode("map")}
             className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-              viewMode === "map" ? "bg-white text-gray-800 shadow-sm" : "text-gray-500"
+              viewMode === "map"
+                ? "bg-white text-gray-800 shadow-sm"
+                : "text-gray-500"
             }`}
           >
             Map
@@ -431,19 +486,24 @@ export default function MapView() {
 
       {/* Content area */}
       <div className="flex-1 relative overflow-hidden">
-
         {/* LIST VIEW */}
         {viewMode === "list" && (
           <div className="h-full overflow-y-auto px-5 py-4">
             {cartsLoading ? (
               <div className="flex justify-center py-8">
-                <div className="w-6 h-6 rounded-full border-2 border-orange-200 border-t-orange-500"
-                  style={{ animation: "spin 1s linear infinite" }} />
+                <div
+                  className="w-6 h-6 rounded-full border-2 border-orange-200 border-t-orange-500"
+                  style={{ animation: "spin 1s linear infinite" }}
+                />
               </div>
             ) : carts.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-gray-500 font-medium mb-1">No results for "{query}"</p>
-                <p className="text-gray-400 text-sm">Try a different search or expand your radius</p>
+                <p className="text-gray-500 font-medium mb-1">
+                  No results for "{query}"
+                </p>
+                <p className="text-gray-400 text-sm">
+                  Try a different search or expand your radius
+                </p>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
@@ -475,11 +535,19 @@ export default function MapView() {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='© <a href="https://openstreetmap.org">OpenStreetMap</a>'
             />
-            <Marker position={[userLocation.latitude, userLocation.longitude]} icon={userIcon} />
+            <Marker
+              position={[userLocation.latitude, userLocation.longitude]}
+              icon={userIcon}
+            />
             <Circle
               center={[userLocation.latitude, userLocation.longitude]}
               radius={radius * 1000}
-              pathOptions={{ color: "#f97316", fillColor: "#f97316", fillOpacity: 0.05, weight: 1 }}
+              pathOptions={{
+                color: "#f97316",
+                fillColor: "#f97316",
+                fillOpacity: 0.05,
+                weight: 1,
+              }}
             />
             {carts.map((cart) => (
               <Marker
@@ -520,7 +588,9 @@ function CartPreviewCard({ cart, onClick }) {
         <div className="min-w-0">
           <p className="text-gray-800 font-semibold text-sm">{cart.name}</p>
           {cart.address && (
-            <p className="text-gray-400 text-xs mt-0.5 truncate">{cart.address}</p>
+            <p className="text-gray-400 text-xs mt-0.5 truncate">
+              {cart.address}
+            </p>
           )}
         </div>
       </div>
@@ -547,7 +617,9 @@ function CartResultCard({ cart, onClick }) {
         <div className="min-w-0 pr-3">
           <h3 className="font-bold text-gray-800">{cart.name}</h3>
           {cart.description && (
-            <p className="text-gray-400 text-sm mt-0.5 line-clamp-2">{cart.description}</p>
+            <p className="text-gray-400 text-sm mt-0.5 line-clamp-2">
+              {cart.description}
+            </p>
           )}
         </div>
         <div className="text-right shrink-0">
@@ -588,15 +660,27 @@ function CartBottomSheet({ cart, onClose }) {
         onClick={onClose}
         className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition"
       >
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M6 18L18 6M6 6l12 12"
+          />
         </svg>
       </button>
 
       <div className="flex items-start justify-between mb-3 pr-6">
         <div>
           <h3 className="font-bold text-gray-800 text-lg">{cart.name}</h3>
-          <p className="text-gray-400 text-sm mt-0.5">{cart.description || "Street food cart"}</p>
+          <p className="text-gray-400 text-sm mt-0.5">
+            {cart.description || "Street food cart"}
+          </p>
         </div>
         <div className="text-right">
           <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full font-medium">
@@ -640,11 +724,14 @@ function FoodItemsPreview({ cartId }) {
   }, [cartId]);
 
   if (loading) return <p className="text-gray-400 text-xs">Loading menu...</p>;
-  if (items.length === 0) return <p className="text-gray-400 text-xs">No menu items listed yet</p>;
+  if (items.length === 0)
+    return <p className="text-gray-400 text-xs">No menu items listed yet</p>;
 
   return (
     <div>
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Menu</p>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+        Menu
+      </p>
       <div className="flex flex-col gap-2 max-h-44 overflow-y-auto">
         {items.map((item) => (
           <div key={item.id} className="flex justify-between items-center">
@@ -654,7 +741,9 @@ function FoodItemsPreview({ cartId }) {
                 <p className="text-gray-400 text-xs">{item.description}</p>
               )}
             </div>
-            <p className="text-orange-500 font-semibold text-sm shrink-0">Rs.{item.price}</p>
+            <p className="text-orange-500 font-semibold text-sm shrink-0">
+              Rs.{item.price}
+            </p>
           </div>
         ))}
       </div>
