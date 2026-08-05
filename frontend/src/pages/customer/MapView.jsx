@@ -137,7 +137,6 @@ export default function MapView() {
         if (msg.type === "cart_offline") {
           // Remove the cart right away so the user doesn't walk to a closed stall.
           setCarts((prev) => prev.filter((c) => c.id !== msg.cartId));
-          setSelectedCart((prev) => (prev?.id === msg.cartId ? null : prev));
         } else if (msg.type === "cart_live") {
           // Re-fetch so the backend can calculate distance and apply filters.
           fetchCarts(query, category, radius);

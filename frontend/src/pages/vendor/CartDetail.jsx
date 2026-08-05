@@ -19,7 +19,7 @@ export default function CartDetail() {
 
   useEffect(() => {
     fetchCart();
-  });
+  }, [id]);
 
   const fetchCart = async () => {
     try {
@@ -39,8 +39,8 @@ export default function CartDetail() {
   const handleToggle = async () => {
     setToggling(true);
     try {
-      const response = await api.put("/carts/toggle", {
-        cart_id: parseInt(id),
+      await api.put("/carts/toggle", {
+        cart_id: parseInt(id, 10),
       });
       // Update cart state locally instead of refetching
       // This is called optimistic update — feels faster
@@ -136,7 +136,7 @@ export default function CartDetail() {
           </p>
         </div>
 
-        <CartLocationForm cart={cart} fetchCart={fetchCart} setError />
+        <CartLocationForm cart={cart} fetchCart={fetchCart} setError={setError} />
 
         {/* ── GO LIVE / GO OFFLINE BUTTON ── */}
         <button
